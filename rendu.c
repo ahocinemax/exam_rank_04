@@ -3,21 +3,25 @@
 #include <sys/wait.h>
 #include <string.h>
 
-void	ft_putchar_fd(char *c, int fd)
+void	ft_putchar_err(char *c)
 {
-	write(fd, c, 1);
+	write(2, c, 1);
 }
 
-void	ft_putstr_fd(char *str, char *arg, int fd)
+int	ft_putstr_err(char *str, char *arg)
 {
-	if (!str || fd < 0)
-		return ;
-	while (*str)
-		ft_putchar_fd(str++, fd);
+	if (str)
+	{
+		while (*str)
+			ft_putchar_err(str++);
+	}
 	if (arg)
+	{
 		while (*arg)
-			ft_putchar_fd(arg++, fd);
-	ft_putchar_fd("\n", fd);
+			ft_putchar_err(arg++);
+	}
+	ft_putchar_err("\n");
+	return (1);
 }
 
 int	ft_execute(char **av, int i, int tmp_fd, char **env)
@@ -26,33 +30,36 @@ int	ft_execute(char **av, int i, int tmp_fd, char **env)
 	dup2(tmp_fd, STDIN_FILENO);
 	close(tmp_fd);
 	execve(av[0], av, env);
-	ft_putstr_fd("error: cannot execute ", av[0], 2);
-	return (1);
+	return (ft_putstr_err("error: cannot execute ", av[0]));
 }
 
 int	main(int ac, char **av, char **env)
 {
-	int pid = 0;
-	int i = 0;
-	int fd[2];
-	int tmp_fd = dup(STDIN_FILENO);
+	int	fd[2];
+	int	i = 0;
+	int	pid = 0;
 
 	if (ac < 2)
-		return (0);
+		return (ft_putstr_err("microshell: usage: ./executable [COMMANDS]\n", NULL));
+	int	tmp_fd = dup(STDIN_FILENO);
+
 	while (av[i] && av[i + 1])
 	{
-		av = av + i + 1;
+		av += i + 1;
 		i = 0;
+
 		while (av[i] && strncmp(av[i], "|", 1) && strncmp(av[i], ";", 1))
 			i++;
-		if (!strcmp(*av, "cd"))
+		
+		if (i != 0 && strncmp(av[0], "cd", 2) == 0)
 		{
 			if (i != 2)
-				ft_putstr_fd("error: cd: bad arguments", NULL, 2);
-			else if (chdir(av[i]))
-				ft_putstr_fd("error: cd: cannot change directory to ", av[i], 2);
+				return (ft_putstr_err("error bad argument", NULL));
+			else if (chdir(av[1]) != 0)
+				return (ft_putstr_err("cannot change directory to ", av[1]));
 		}
-		else if (i && (av[i] == NULL || strncmp(av[i], ";", 1)))
+
+		else if (i != 0 && (av[i] == NULL || strncmp(av[i], ";", 1) == 0))
 		{
 			pid = fork();
 			if (pid == 0)
@@ -67,7 +74,8 @@ int	main(int ac, char **av, char **env)
 				tmp_fd = dup(STDIN_FILENO);
 			}
 		}
-		else if (i && strncmp(av[i], "|", 1))
+
+		else if (i != 0 && strncmp (av[i], "|", 1) == 0)
 		{
 			pipe(fd);
 			pid = fork();

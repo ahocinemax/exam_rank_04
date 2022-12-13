@@ -38,7 +38,7 @@ int	main(int argc, char **av, char **env)
 		return (printf("microshell: usage: ./executable [COMMANDS]\n"));
 	while (av[i] && av[i + 1]) //check if the end is reached
 	{
-		av = av + i + 1; //the new av start after the ; or "|" *** this line is very importante
+		av = av + i + 1; 	//the new av start after the ; or "|" *** this line is very importante
 		i = 0;
 		//count until we have all informations to execute the next child;
 		while (av[i] && strcmp(av[i], ";") && strcmp(av[i], "|"))
@@ -51,7 +51,8 @@ int	main(int argc, char **av, char **env)
 				ft_putstr_fd2("error: cd: cannot change directory to ", av[1]);
 		}
 		else if (i != 0 && (av[i] == NULL || strcmp(av[i], ";") == 0)) //exec in stdout
-		{//we enter here when i != 0, it mean we have at least one cmd, and when we are on the last cmd befor a NULL or a ";".
+		{
+			//we enter here when i != 0, it mean we have at least one cmd, and when we are on the last cmd befor a NULL or a ";".
 			pid = fork();
 			if (pid == 0)
 			{
@@ -61,8 +62,7 @@ int	main(int argc, char **av, char **env)
 			else
 			{
 				close(tmp_fd);
-				while(waitpid(-1, NULL, WUNTRACED) != -1)
-					;
+				while(waitpid(-1, NULL, WUNTRACED) != -1);
 				tmp_fd = dup(STDIN_FILENO);
 			}
 		}
