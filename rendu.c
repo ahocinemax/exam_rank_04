@@ -1,26 +1,17 @@
 #include <stdio.h>
-#include <unistd.h>
 #include <sys/wait.h>
+#include <unistd.h>
 #include <string.h>
 
-void	ft_putchar_err(char *c)
+int ft_putstr_err(char *str, char *arg)
 {
-	write(2, c, 1);
-}
+	while (*str)
+		write(STDERR_FILENO, str++, 1);
 
-int	ft_putstr_err(char *str, char *arg)
-{
-	if (str)
-	{
-		while (*str)
-			ft_putchar_err(str++);
-	}
 	if (arg)
-	{
 		while (*arg)
-			ft_putchar_err(arg++);
-	}
-	ft_putchar_err("\n");
+			write(STDERR_FILENO, arg++, 1);
+	write(STDERR_FILENO, "\n", 1);
 	return (1);
 }
 
@@ -30,18 +21,19 @@ int	ft_execute(char **av, int i, int tmp_fd, char **env)
 	dup2(tmp_fd, STDIN_FILENO);
 	close(tmp_fd);
 	execve(av[0], av, env);
-	return (ft_putstr_err("error: cannot execute ", av[0]));
+	ft_putstr_err("error: cannot execute ", av[0]);
+	return (1);
 }
 
 int	main(int ac, char **av, char **env)
 {
-	int	fd[2];
-	int	i = 0;
-	int	pid = 0;
+	int fd[2];
+	int i = 0;
+	int pid = 0;
 
 	if (ac < 2)
-		return (ft_putstr_err("microshell: usage: ./executable [COMMANDS]\n", NULL));
-	int	tmp_fd = dup(STDIN_FILENO);
+		return (0);
+	int tmp_fd = dup(STDIN_FILENO);
 
 	while (av[i] && av[i + 1])
 	{
@@ -51,12 +43,12 @@ int	main(int ac, char **av, char **env)
 		while (av[i] && strncmp(av[i], "|", 1) && strncmp(av[i], ";", 1))
 			i++;
 		
-		if (i != 0 && strncmp(av[0], "cd", 2) == 0)
+		if (strncmp(av[0], "cd", 2) == 0)
 		{
 			if (i != 2)
-				return (ft_putstr_err("error bad argument", NULL));
-			else if (chdir(av[1]) != 0)
-				return (ft_putstr_err("cannot change directory to ", av[1]));
+				ft_putstr_err("error: cd: bad arguments", NULL);
+			else if (chdir(av[i]) != 0)
+				ft_putstr_err("error: cd: cannot change directory to ", av[1]);
 		}
 
 		else if (i != 0 && (av[i] == NULL || strncmp(av[i], ";", 1) == 0))
@@ -64,7 +56,7 @@ int	main(int ac, char **av, char **env)
 			pid = fork();
 			if (pid == 0)
 			{
-				if (ft_execute(av, i, tmp_fd, env))
+				if (ft_execute(av, i , tmp_fd, env))
 					return (1);
 			}
 			else
@@ -75,7 +67,7 @@ int	main(int ac, char **av, char **env)
 			}
 		}
 
-		else if (i != 0 && strncmp (av[i], "|", 1) == 0)
+		else if (i != 0 && strncmp(av[i], "|", 1) == 0)
 		{
 			pipe(fd);
 			pid = fork();
@@ -89,8 +81,8 @@ int	main(int ac, char **av, char **env)
 			}
 			else
 			{
-				close(fd[1]);
 				close(tmp_fd);
+				close(fd[1]);
 				tmp_fd = fd[0];
 			}
 		}
